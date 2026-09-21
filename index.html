@@ -1,106 +1,326 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Animal Cell AR</title>
-
-    <!-- A-Frame -->
-    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-
-    <!-- AR.js -->
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>AR 3D Scanner</title>
     <style>
-        #status {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 9999;
-
-            background: black;
-            color: white;
-
-            padding: 10px 15px;
-
-            font-family: Arial;
-            font-size: 18px;
-
-            border-radius: 8px;
+      :root {
+        --ink: #16324f;
+        --muted: #5c7083;
+        --blue: #2783de;
+        --blue-dark: #1768bb;
+        --surface: #fff;
+        --line: #dfe8f1;
+        --danger: #c84747;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background: linear-gradient(
+          150deg,
+          #eef7ff 0%,
+          #f8fbff 48%,
+          #e9f4ff 100%
+        );
+      }
+      body {
+        min-height: 100svh;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+      }
+      .app {
+        width: min(100%, 520px);
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 28px 22px 22px;
+        box-shadow: 0 14px 50px rgba(25, 80, 130, 0.12);
+      }
+      .eyebrow {
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        color: var(--blue);
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 8px 0 10px;
+        font-size: clamp(2rem, 8vw, 3rem);
+        line-height: 1;
+        letter-spacing: -0.06em;
+      }
+      .intro {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.05rem;
+        line-height: 1.5;
+      }
+      .panel {
+        margin-top: 22px;
+        padding: 16px;
+        border-radius: 16px;
+        background: #f7fbff;
+        border: 1px solid #e2edf7;
+      }
+      .status {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        font-weight: 750;
+        line-height: 1.35;
+      }
+      .dot {
+        width: 11px;
+        height: 11px;
+        margin-top: 5px;
+        flex: none;
+        border-radius: 50%;
+        background: #5dbb82;
+        box-shadow: 0 0 0 5px #def3e6;
+      }
+      .dot.busy {
+        background: #e3a23c;
+        box-shadow: 0 0 0 5px #fff0d7;
+      }
+      .dot.error {
+        background: var(--danger);
+        box-shadow: 0 0 0 5px #f9dddd;
+      }
+      .actions {
+        display: grid;
+        gap: 11px;
+        margin-top: 20px;
+      }
+      button {
+        min-height: 50px;
+        width: 100%;
+        border: 0;
+        border-radius: 13px;
+        padding: 13px 18px;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      button:focus-visible {
+        outline: 3px solid #8bc4f5;
+        outline-offset: 3px;
+      }
+      .primary {
+        color: white;
+        background: var(--blue);
+        box-shadow: 0 5px 14px rgba(39, 131, 222, 0.25);
+      }
+      .primary:active {
+        background: var(--blue-dark);
+        transform: translateY(1px);
+      }
+      .secondary {
+        color: var(--ink);
+        background: #edf5fc;
+      }
+      .danger {
+        color: #fff;
+        background: var(--danger);
+      }
+      .tip {
+        margin: 18px 3px 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+      .modal {
+        position: fixed;
+        inset: 0;
+        padding: 18px;
+        display: grid;
+        place-items: center;
+        background: rgba(12, 33, 54, 0.55);
+        z-index: 10;
+      }
+      .modal[hidden] {
+        display: none;
+      }
+      .modal-card {
+        width: min(100%, 520px);
+        max-height: 90svh;
+        overflow: auto;
+        background: white;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 18px 70px rgba(0, 0, 0, 0.25);
+      }
+      .modal-card h2 {
+        margin: 0 0 13px;
+      }
+      .modal-card ol {
+        padding-left: 22px;
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+      .modal-card li + li {
+        margin-top: 6px;
+      }
+      .close {
+        margin-top: 20px;
+      }
+      #xr-root {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+      }
+      body.ar-active {
+        background: #000;
+      }
+      body.ar-active .app {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        width: auto;
+        padding: 14px 16px;
+        border-radius: 17px;
+        z-index: 2;
+        background: rgba(255, 255, 255, 0.94);
+      }
+      body.ar-active .eyebrow,
+      body.ar-active h1,
+      body.ar-active .intro,
+      body.ar-active .tip,
+      body.ar-active .panel {
+        display: none;
+      }
+      body.ar-active .actions {
+        margin-top: 0;
+      }
+      body.ar-active .actions button:not(.danger) {
+        display: none;
+      }
+      @media (min-width: 600px) {
+        body {
+          padding: 32px;
         }
+      }
     </style>
-</head>
-
-<body style="margin: 0; overflow: hidden;">
-
-    <div id="status">
-        Looking for Hiro marker...
-    </div>
-
-    <a-scene
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: false;"
->
-
-    <!-- LIGHTING -->
-    <a-light
-        type="ambient"
-        intensity="2">
-    </a-light>
-
-    <a-light
-        type="directional"
-        position="2 4 2"
-        intensity="3">
-    </a-light>
-
-
-    <!-- HIRO MARKER -->
-    <a-marker
-        preset="hiro"
-        id="hiroMarker"
+  </head>
+  <body>
+    <main class="app" aria-live="polite">
+      <div class="eyebrow">School demonstration</div>
+      <h1>AR 3D SCANNER</h1>
+      <p class="intro">
+        Scan a supported image to see a 3D object appear in AR.
+      </p>
+      <section class="panel" aria-label="Scanner status">
+        <div class="status">
+          <span id="status-dot" class="dot"></span
+          ><span id="status-text">Ready to scan</span>
+        </div>
+      </section>
+      <div class="actions">
+        <button id="start" class="primary">START AR</button
+        ><button id="how" class="secondary">HOW TO USE</button
+        ><button id="stop" class="danger" hidden>STOP AR</button>
+      </div>
+      <p class="tip">
+        For the easiest demo, display one of the built-in target cards on
+        another screen or print it: Charizard, Pikachu, or Bulbasaur.
+      </p>
+    </main>
+    <div
+      id="how-modal"
+      class="modal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="how-title"
     >
-
-        <!-- ANIMAL CELL -->
-        <a-entity
-            id="animalCell"
-            position="0 0 0"
-            rotation="0 0 0"
-        >
-
-            <a-entity
-                gltf-model="animal_cell.glb"
-                position="0 -0.7 0"
-                scale="0.012 0.012 0.012"
-                rotation="90 0 0">
-            </a-entity>
-
-        </a-entity>
-
-    </a-marker>
-
-    <a-entity camera></a-entity>
-
-</a-scene>
+      <div class="modal-card">
+        <h2 id="how-title">How to use</h2>
+        <ol>
+          <li>Press <b>START AR</b>.</li>
+          <li>Allow camera permission.</li>
+          <li>Point the camera at a supported picture.</li>
+          <li>Keep the picture visible and well lit.</li>
+          <li>Wait for the image to be detected.</li>
+          <li>The corresponding 3D object will appear.</li>
+          <li>Move the phone around the picture to view the object.</li>
+        </ol>
+        <button id="close-how" class="secondary close">CLOSE</button>
+      </div>
+    </div>
+    <div id="xr-root" aria-hidden="true"></div>
+    ​
+    <!-- Three.js is a rendering library, not a model file. The AR scene and all 3D shapes are created below in code. -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <script>
-
-        const marker = document.querySelector("#hiroMarker");
-        const status = document.querySelector("#status");
-
-        marker.addEventListener("markerFound", function () {
-
-            status.innerHTML = "✅ ANIMAL CELL DETECTED!";
-
-        });
-
-        marker.addEventListener("markerLost", function () {
-
-            status.innerHTML = "Looking for Hiro marker...";
-
-        });
-
+        'use strict';
+        /*
+          ONE-FILE AR PROJECT
+          The three target images below are tiny inline SVG cards. They are converted to
+          ImageBitmaps and passed to WebXR's image-tracking feature—no targets.mind file.
+          To use your own picture, replace one SVG string with an SVG/data image that has
+          the same dimensions and update its label. A real photo must be converted to a
+          data URL and kept inline to preserve the one-file rule.
+        */
+        const TARGETS = [
+          { name:'CHARIZARD', label:'Charizard', width:0.12, svg:`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900"><rect width="600" height="900" rx="28" fill="#e46d45"/><rect x="24" y="24" width="552" height="852" rx="20" fill="#ffb04f" stroke="#fff" stroke-width="8"/><circle cx="300" cy="330" r="145" fill="#f37b4b"/><path d="M190 510 Q300 420 410 510 L440 720 Q300 790 160 720Z" fill="#d84b38"/><path d="M182 300 L112 170 L245 235 M418 300 L488 170 L355 235" fill="#f37b4b" stroke="#fff" stroke-width="10"/><circle cx="250" cy="325" r="16" fill="#16324f"/><circle cx="350" cy="325" r="16" fill="#16324f"/><text x="300" y="830" text-anchor="middle" font-family="Arial" font-size="48" font-weight="700" fill="#fff">CHARIZARD</text></svg>` },
+          { name:'PIKACHU', label:'Pikachu', width:0.12, svg:`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900"><rect width="600" height="900" rx="28" fill="#e8b92e"/><rect x="24" y="24" width="552" height="852" rx="20" fill="#ffe978" stroke="#fff" stroke-width="8"/><circle cx="300" cy="390" r="160" fill="#ffd83f"/><path d="M174 245 L120 105 L250 180 M426 245 L480 105 L350 180" fill="#ffd83f" stroke="#b67b18" stroke-width="10"/><circle cx="248" cy="370" r="17" fill="#16324f"/><circle cx="352" cy="370" r="17" fill="#16324f"/><circle cx="205" cy="465" r="30" fill="#e85b4d"/><circle cx="395" cy="465" r="30" fill="#e85b4d"/><path d="M240 480 Q300 530 360 480" fill="none" stroke="#16324f" stroke-width="12"/><text x="300" y="830" text-anchor="middle" font-family="Arial" font-size="48" font-weight="700" fill="#16324f">PIKACHU</text></svg>` },
+          { name:'BULBASAUR', label:'Bulbasaur', width:0.12, svg:`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900"><rect width="600" height="900" rx="28" fill="#5a9b68"/><rect x="24" y="24" width="552" height="852" rx="20" fill="#9dd27d" stroke="#fff" stroke-width="8"/><ellipse cx="300" cy="430" rx="180" ry="150" fill="#76bb74"/><path d="M180 310 L120 150 L270 250 M420 310 L480 150 L330 250" fill="#76bb74" stroke="#3a754d" stroke-width="10"/><path d="M225 290 Q300 180 375 290 Q350 380 300 410 Q250 380 225 290" fill="#d36f5b" stroke="#7c493e" stroke-width="8"/><circle cx="245" cy="430" r="16" fill="#16324f"/><circle cx="355" cy="430" r="16" fill="#16324f"/><text x="300" y="830" text-anchor="middle" font-family="Arial" font-size="44" font-weight="700" fill="#fff">BULBASAUR</text></svg>` }
+        ];
+      ​
+        const $ = id => document.getElementById(id);
+        let renderer, scene, camera, session, referenceSpace, animationFrame;
+        let targetBitmaps = [], targetGroups = [], active = false;
+      ​
+        function setStatus(text, kind='ready') { $('status-text').textContent=text; $('status-dot').className='dot '+(kind==='busy'?'busy':kind==='error'?'error':''); }
+        function svgToBitmap(svg) { return fetch('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)).then(r=>r.blob()).then(createImageBitmap); }
+        function material(color) { return new THREE.MeshBasicMaterial({color, roughness:1, metalness:0}); }
+        function add(group, geometry, color, x,y,z, sx=1,sy=1,sz=1) { const mesh=new THREE.Mesh(geometry, material(color)); mesh.position.set(x,y,z); mesh.scale.set(sx,sy,sz); group.add(mesh); return mesh; }
+        function createPikachu() { const g=new THREE.Group(); add(g,new THREE.SphereGeometry(.045,8,6),0xffd83f,0,.08,0); add(g,new THREE.SphereGeometry(.06,8,6),0xffc92f,0,-.005,0); add(g,new THREE.ConeGeometry(.025,.11,6),0xffd83f,-.035,.15,0,1,1,1.6).rotation.z=-.35; add(g,new THREE.ConeGeometry(.025,.11,6),0xffd83f,.035,.15,0,1,1,1.6).rotation.z=.35; add(g,new THREE.SphereGeometry(.009,6,4),0x16324f,-.017,.09,.041); add(g,new THREE.SphereGeometry(.009,6,4),0x16324f,.017,.09,.041); add(g,new THREE.SphereGeometry(.012,6,4),0xe85b4d,-.036,.055,.04); add(g,new THREE.SphereGeometry(.012,6,4),0xe85b4d,.036,.055,.04); return g; }
+        function createCharizard() { const g=new THREE.Group(); add(g,new THREE.SphereGeometry(.05,8,6),0xf37b4b,0,.11,0); add(g,new THREE.SphereGeometry(.065,8,6),0xd84b38,0,.01,0); add(g,new THREE.ConeGeometry(.025,.1,6),0xf37b4b,-.04,.18,0).rotation.z=-.4; add(g,new THREE.ConeGeometry(.025,.1,6),0xf37b4b,.04,.18,0).rotation.z=.4; add(g,new THREE.SphereGeometry(.009,6,4),0x16324f,-.018,.12,.045); add(g,new THREE.SphereGeometry(.009,6,4),0x16324f,.018,.12,.045); add(g,new THREE.ConeGeometry(.016,.07,6),0xffc14a,0,-.07,.03); return g; }
+        function createBulbasaur() { const g=new THREE.Group(); add(g,new THREE.SphereGeometry(.07,8,6),0x76bb74,0,.055,0); add(g,new THREE.SphereGeometry(.045,8,6),0x9dd27d,0,.13,.01); add(g,new THREE.ConeGeometry(.045,.065,5),0xd36f5b,0,.19,0,1,1,1.2); add(g,new THREE.SphereGeometry(.009,6,4),0x16324f,-.017,.14,.04); add(g,new THREE.SphereGeometry(.009,6,4),0x16324f,.017,.14,.04); return g; }
+        const BUILDERS = { CHARIZARD:createCharizard, PIKACHU:createPikachu, BULBASAUR:createBulbasaur };
+      ​
+        function buildScene() { scene=new THREE.Scene(); camera=new THREE.PerspectiveCamera(); renderer=new THREE.WebGLRenderer({alpha:true,antialias:false,powerPreference:'low-power'}); renderer.setPixelRatio(Math.min(devicePixelRatio,1.5)); renderer.xr.enabled=true; renderer.outputColorSpace=THREE.SRGBColorSpace; $('xr-root').appendChild(renderer.domElement); TARGETS.forEach(t=>{const group=new THREE.Group(); group.visible=false; group.add(BUILDERS[t.name]()); scene.add(group); targetGroups.push(group);}); }
+        async function startAR() {
+          if (active) return;
+          if (!window.isSecureContext) { setStatus('Camera AR requires HTTPS. Open the GitHub Pages HTTPS address.','error'); return; }
+          if (!navigator.xr) { setStatus('This browser does not provide WebXR AR. Try Chrome on a recent Android phone.','error'); return; }
+          try {
+            setStatus('Starting camera…','busy');
+            targetBitmaps=await Promise.all(TARGETS.map(t=>svgToBitmap(t.svg)));
+            const supported=await navigator.xr.isSessionSupported('immersive-ar');
+            if (!supported) throw new Error('Immersive AR is not supported on this device/browser.');
+            session=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['local','image-tracking'],trackedImages:targetBitmaps.map((image,i)=>({image,widthInMeters:TARGETS[i].width}))});
+            buildScene();
+            referenceSpace=await session.requestReferenceSpace('local');
+            renderer.xr.setSession(session); active=true; document.body.classList.add('ar-active'); $('start').hidden=true; $('how').hidden=true; $('stop').hidden=false; setStatus('Point your camera at a supported image.','busy');
+            session.addEventListener('end',stopAR); session.requestAnimationFrame(onXRFrame);
+          } catch(err) { console.error(err); const msg=String(err.message||err); if (/permission|denied/i.test(msg)) setStatus('Camera permission was denied. Allow camera access and try again.','error'); else if (/image-tracking|feature|supported/i.test(msg)) setStatus('This browser does not support WebXR image tracking. Try Chrome on Android with WebXR Incubations enabled.','error'); else setStatus('AR could not start: '+msg,'error'); cleanup(); }
+        }
+        function onXRFrame(time, frame) { if (!active) return; session.requestAnimationFrame(onXRFrame); const results=frame.getImageTrackingResults ? frame.getImageTrackingResults() : []; let found=false; results.forEach(result=>{ const index=result.index; const pose=frame.getPose(result.imageSpace,referenceSpace); if (!pose) return; const group=targetGroups[index]; group.visible=true; group.matrixAutoUpdate=false; group.matrix.fromArray(pose.transform.matrix); found=true; }); if(found) setStatus('3D object displayed.','ready'); else setStatus('Searching for a supported image…','busy'); renderer.render(scene,camera); }
+        function stopAR() { if (!active && !session) return; active=false; if(session) { const s=session; session=null; s.end().catch(()=>{}); } cleanup(); document.body.classList.remove('ar-active'); $('start').hidden=false; $('how').hidden=false; $('stop').hidden=true; setStatus('Ready to scan'); }
+        function cleanup() { targetGroups.forEach(g=>scene&&scene.remove(g)); targetGroups=[]; if(renderer){ renderer.dispose(); renderer.domElement.remove(); renderer=null; } targetBitmaps.forEach(b=>b.close&&b.close()); targetBitmaps=[]; }
+        $('start').addEventListener('click',startAR); $('stop').addEventListener('click',stopAR); $('how').addEventListener('click',()=>{$('how-modal').hidden=false;}); $('close-how').addEventListener('click',()=>{$('how-modal').hidden=true;}); $('how-modal').addEventListener('click',e=>{if(e.target===$('how-modal')) $('how-modal').hidden=true;});
     </script>
-
-</body>
+  </body>
 </html>
